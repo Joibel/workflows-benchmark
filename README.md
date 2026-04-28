@@ -161,11 +161,3 @@ relevant knobs on the workflow-controller:
 - `PARALLELISM_LIMIT` env var
 
 Raise one at a time and rerun the benchmark.
-
-## Design notes
-
-See the plan document for the rationale: load shape = maintain backlog
-of ~500 unstarted workflows (Pending / pre-reconcile), submission path =
-direct k8s API via kubeconfig (no argo-server in the measurement),
-cleanup = inject-if-missing with respect for user values, steady-state
-detection = 2-minute rolling rel-stddev check, exit = Ctrl-C with drain.
