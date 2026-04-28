@@ -1,0 +1,57 @@
+# ServiceAccount the benchmark Job runs as, plus the minimum permissions
+# it needs. Distinct from the ServiceAccount the submitted workflows use
+# (that one is injected via --service-account and typically "argo").
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: workflows-benchmark
+  namespace: argo
+---
+# Namespaced: manage Workflow CRDs in the target namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workflows-benchmark-wf
+  namespace: argo
+rules:
+- apiGroups: ["argoproj.io"]
+  resources: ["workflows"]
+  verbs: ["create", "get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workflows-benchmark-wf
+  namespace: argo
+subjects:
+- kind: ServiceAccount
+  name: workflows-benchmark
+  namespace: argo
+roleRef:
+  kind: Role
+  name: workflows-benchmark-wf
+  apiGroup: rbac.authorization.k8s.io
+---
+# Cluster-scoped: list/watch Nodes so we can report cluster size and
+# autoscaling movement during the run.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workflows-benchmark-nodes
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: workflows-benchmark-nodes
+subjects:
+- kind: ServiceAccount
+  name: workflows-benchmark
+  namespace: argo
+roleRef:
+  kind: ClusterRole
+  name: workflows-benchmark-nodes
+  apiGroup: rbac.authorization.k8s.io

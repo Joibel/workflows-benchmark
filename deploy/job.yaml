@@ -1,0 +1,79 @@
+# Workflow YAML the benchmark will submit, provided as a ConfigMap and
+# mounted into the Job pod. Replace the Workflow below with whatever you
+# want to benchmark; the tool loads it via --workflow=/etc/workflow/workflow.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workflows-benchmark-wf
+  namespace: argo
+data:
+  workflow.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: Workflow
+    metadata:
+      generateName: bench-
+    spec:
+      entrypoint: main
+      templates:
+      - name: main
+        container:
+          image: alpine:3
+          command: [sh, -c]
+          args: ["echo hi"]
+---
+# If your argo install doesn't already expose metrics via a Service,
+# uncomment this. Default argo installs typically ship one called
+# workflow-controller-metrics — check with
+# `kubectl get svc -n argo -l app=workflow-controller`.
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: workflow-controller-metrics
+#   namespace: argo
+# spec:
+#   selector:
+#     app: workflow-controller
+#   ports:
+#   - name: metrics
+#     port: 9090
+#     targetPort: 9090
+# ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: workflows-benchmark
+  namespace: argo
+spec:
+  # backoffLimit=0: the benchmark is interactive (runs until you delete
+  # the Job or the process is killed). A restart would reset counters.
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: workflows-benchmark
+      # If your Docker Hub repo is private, create a pull secret
+      # (kubectl create secret docker-registry dockerhub ...) and
+      # uncomment:
+      # imagePullSecrets:
+      # - name: dockerhub
+      containers:
+      - name: benchmark
+        # REPLACE with your Docker Hub image and tag.
+        image: DOCKERHUB_USER/workflows-benchmark:latest
+        imagePullPolicy: Always
+        args:
+        - --workflow=/etc/workflow/workflow.yaml
+        - --namespace=argo
+        - --target-in-flight=1000
+        - --controller-metrics=http://workflow-controller-metrics.argo.svc:9090/metrics
+        - --service-account=argo
+        # Pass-through for the workflow's own private-registry pulls, if needed:
+        # - --image-pull-secret=regcred
+        volumeMounts:
+        - name: workflow
+          mountPath: /etc/workflow
+          readOnly: true
+      volumes:
+      - name: workflow
+        configMap:
+          name: workflows-benchmark-wf
