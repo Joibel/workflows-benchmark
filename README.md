@@ -124,7 +124,6 @@ pointing at the relevant controller tuning knobs.
     workflows immediately)
   - `spec.ttlStrategy.secondsAfterFailure: 86400` (keep failures a day
     for inspection)
-  - `spec.podGC.strategy: OnPodCompletion`
 - If `--image-pull-secret` is set and the YAML has no
   `spec.imagePullSecrets`, injects the named secret(s) — e.g.
   `--image-pull-secret=test` or `--image-pull-secret=test,other`.
@@ -134,7 +133,7 @@ pointing at the relevant controller tuning knobs.
   the `default` SA typically isn't, which manifests as every wait
   container failing with a "forbidden" error.
 
-If your YAML already sets `ttlStrategy`, `podGC`, `imagePullSecrets`, or
+If your YAML already sets `ttlStrategy`, `imagePullSecrets`, or
 `serviceAccountName`, those are respected.
 
 ## Controller metrics
